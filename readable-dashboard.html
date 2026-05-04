@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tsumaki Electrical Tracker - Readable Dashboard</title>
+  <style>
+    :root {
+      --bg: #f6f8f7;
+      --panel: #ffffff;
+      --ink: #14211f;
+      --muted: #66736f;
+      --line: #dce5e1;
+      --brand: #0f766e;
+      --brand-dark: #115e59;
+      --soft: #e6f4ef;
+      --warn: #fff6d7;
+      --danger: #fff1f0;
+      --red: #b42318;
+      --shadow: 0 12px 28px rgba(20, 33, 31, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    button, input, select { font: inherit; }
+    button { border: 0; cursor: pointer; }
+
+    .app {
+      width: min(1220px, calc(100% - 28px));
+      margin: auto;
+      padding: 24px 0 44px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+
+    .topbar h1 { font-size: 34px; }
+    .sub { color: var(--muted); margin-top: 7px; line-height: 1.45; }
+
+    .actions, .tabs, .form-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      min-height: 40px;
+      border-radius: 7px;
+      padding: 9px 13px;
+      color: #fff;
+      background: var(--brand);
+      font-weight: 800;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .button:hover { background: var(--brand-dark); }
+    .button.secondary { color: var(--brand-dark); background: var(--soft); }
+    .button.danger { color: var(--red); background: var(--danger); }
+    .button.small { min-height: 32px; padding: 6px 9px; font-size: 13px; }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 190px 1fr 170px 180px;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    input, select {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 9px 10px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .nav {
+      position: sticky;
+      top: 14px;
+      display: grid;
+      gap: 8px;
+      padding: 8px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .nav button {
+      min-height: 42px;
+      text-align: left;
+      padding: 10px 11px;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .nav button.active {
+      background: var(--ink);
+      color: white;
+    }
+
+    .view { display: none; }
+    .view.active { display: grid; gap: 14px; }
+
+    .grid { display: grid; gap: 14px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .grid.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+    .panel, .metric, .item {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .metric { padding: 15px; min-height: 92px; }
+    .metric span { display: block; color: var(--muted); font-size: 13px; margin-bottom: 9px; }
+    .metric strong { font-size: 24px; }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfb;
+    }
+
+    .panel-body { padding: 16px; }
+
+    form { display: grid; gap: 11px; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+
+    .list, .rank-list, .bars { display: grid; gap: 10px; }
+    .item { padding: 13px; }
+
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .title { font-weight: 900; }
+    .muted { color: var(--muted); font-size: 13px; margin-top: 3px; }
+
+    .mini-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 11px;
+    }
+
+    .mini-stats span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 8px;
+      border-radius: 7px;
+      background: #f7faf8;
+      border: 1px solid #edf2ef;
+    }
+
+    .mini-stats b { display: block; color: var(--ink); font-size: 15px; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--brand-dark);
+      background: var(--soft);
+      white-space: nowrap;
+    }
+
+    .badge.warn { color: #7a4e00; background: var(--warn); }
+    .badge.red { color: var(--red); background: var(--danger); }
+
+    .rank-row {
+      display: grid;
+      grid-template-columns: 38px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .rank-no {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--soft);
+      color: var(--brand-dark);
+      font-weight: 900;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 145px 1fr 90px;
+      gap: 10px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .bar-name { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-track { height: 11px; background: #edf2ef; border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--brand); }
+
+    .table-wrap { max-height: 420px; overflow: auto; border-top: 1px solid var(--line); }
+    table { width: 100%; border-collapse: collapse; min-width: 820px; }
+    th, td { padding: 11px 10px; border-bottom: 1px solid var(--line); text-align: left; font-size: 14px; }
+    th { position: sticky; top: 0; background: #fbfcfb; color: var(--muted); font-size: 12px; text-transform: uppercase; }
+    .money, .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .empty { border: 1px dashed #b8c7c1; border-radius: 8px; padding: 18px; text-align: center; color: var(--muted); background: #fbfcfb; }
+
+    @media (max-width: 980px) {
+      .layout, .topbar { grid-template-columns: 1fr; }
+      .nav { position: static; grid-template-columns: repeat(3, 1fr); }
+      .grid.five, .grid.four, .grid.two, .filters, .form-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 640px) {
+      .grid.five, .grid.four, .grid.two, .filters, .form-row, .mini-stats { grid-template-columns: 1fr; }
+      .nav { grid-template-columns: 1fr 1fr; }
+      .bar-row { grid-template-columns: 1fr; }
+      h1 { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <h1>Tsumaki Electrical Tracker</h1>
+        <p class="sub">Readable company dashboard version with clean categories, payroll, deductions, reports, exports, and employee management.</p>
+      </div>
+      <div class="actions">
+        <a class="button secondary" href="index.html">First Version</a>
+        <a class="button secondary" href="company-dashboard.html">Compact Dashboard</a>
+        <button class="button secondary" id="exportBtn" type="button">Export CSV</button>
+        <button class="button" id="backupBtn" type="button">Backup JSON</button>
+      </div>
+    </header>
+
+    <section class="filters">
+      <label>Month<input id="monthFilter" type="month"></label>
+      <label>Search<input id="searchFilter" placeholder="Search employee, site, reason"></label>
+      <label>Job Type<select id="typeFilter"><option value="">All jobs</option><option>Install</option><option>Maintenance</option><option>Callout</option><option>Inspection</option></select></label>
+      <label>Employee<select id="employeeFilter"></select></label>
+    </section>
+
+    <section class="layout">
+      <nav class="nav">
+        <button class="active" data-view="overview" type="button">Overview</button>
+        <button data-view="employees" type="button">Employees</button>
+        <button data-view="work" type="button">Work</button>
+        <button data-view="money" type="button">Money</button>
+        <button data-view="payroll" type="button">Payroll</button>
+        <button data-view="reports" type="button">Reports</button>
+      </nav>
+
+      <section>
+        <section class="view active" id="view-overview">
+          <div class="grid five">
+            <div class="metric"><span>Employees</span><strong id="kEmployees">0</strong></div>
+            <div class="metric"><span>Hours</span><strong id="kHours">0</strong></div>
+            <div class="metric"><span>Gross</span><strong id="kGross">R0.00</strong></div>
+            <div class="metric"><span>Balance</span><strong id="kBalance">R0.00</strong></div>
+            <div class="metric"><span>Net Payroll</span><strong id="kNet">R0.00</strong></div>
+          </div>
+          <div class="grid two">
+            <section class="panel"><div class="panel-head"><h2>Top Employees</h2></div><div class="panel-body"><div class="rank-list" id="topEmployees"></div></div></section>
+            <section class="panel"><div class="panel-head"><h2>Hours Chart</h2></div><div class="panel-body"><div class="bars" id="hoursChart"></div></div></section>
+          </div>
+        </section>
+
+        <section class="view" id="view-employees">
+          <section class="panel">
+            <div class="panel-head"><h2>Add Employee</h2></div>
+            <div class="panel-body">
+              <form id="employeeForm">
+                <div class="form-row">
+                  <label>Name<input id="employeeName" required></label>
+                  <label>Role<input id="employeeRole" placeholder="Electrician"></label>
+                  <label>Rate<input id="employeeRate" type="number" min="0" step="0.01"></label>
+                  <label>Status<select id="employeeStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+                </div>
+                <div class="form-actions"><button class="button" type="submit">Add Employee</button></div>
+              </form>
+            </div>
+          </section>
+          <section class="panel"><div class="panel-head"><h2>Employee Directory</h2></div><div class="panel-body"><div class="list" id="employeeList"></div></div></section>
+        </section>
+
+        <section class="view" id="view-work">
+          <section class="panel">
+            <div class="panel-head"><h2>Log Work</h2></div>
+            <div class="panel-body">
+              <form id="workForm">
+                <div class="form-row">
+                  <label>Employee<select id="workEmployee"></select></label>
+                  <label>Date<input id="workDate" type="date" required></label>
+                  <label>Hours<input id="workHours" type="number" min="0" step="0.25" required></label>
+                  <label>Rate<input id="workRate" type="number" min="0" step="0.01" required></label>
+                </div>
+                <div class="form-row">
+                  <label>Job Type<select id="workType"><option>Install</option><option>Maintenance</option><option>Callout</option><option>Inspection</option></select></label>
+                  <label>Site<input id="workSite"></label>
+                  <label>Status<select id="workStatus"><option value="approved">Approved</option><option value="pending">Pending</option></select></label>
+                  <label>Note<input id="workNote"></label>
+                </div>
+                <div class="form-actions"><button class="button" type="submit">Add Work</button></div>
+              </form>
+            </div>
+          </section>
+          <section class="panel"><div class="panel-head"><h2>Work Ledger</h2></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Employee</th><th>Site</th><th>Type</th><th>Hours</th><th>Rate</th><th>Pay</th><th>Status</th><th>Action</th></tr></thead><tbody id="workTable"></tbody></table></div></section>
+        </section>
+
+        <section class="view" id="view-money">
+          <section class="panel">
+            <div class="panel-head"><h2>Deductions And Repayments</h2></div>
+            <div class="panel-body">
+              <form id="moneyForm">
+                <div class="form-row">
+                  <label>Employee<select id="moneyEmployee"></select></label>
+                  <label>Date<input id="moneyDate" type="date" required></label>
+                  <label>Type<select id="moneyType"><option value="deduction">Deduction</option><option value="repayment">Repayment</option></select></label>
+                  <label>Amount<input id="moneyAmount" type="number" min="0" step="0.01" required></label>
+                </div>
+                <label>Reason<input id="moneyReason"></label>
+                <div class="form-actions"><button class="button" type="submit">Add Money Record</button></div>
+              </form>
+            </div>
+          </section>
+          <section class="panel"><div class="panel-head"><h2>Money Ledger</h2></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Employee</th><th>Type</th><th>Amount</th><th>Reason</th><th>Action</th></tr></thead><tbody id="moneyTable"></tbody></table></div></section>
+        </section>
+
+        <section class="view" id="view-payroll">
+          <section class="panel"><div class="panel-head"><h2>Month-End Payroll</h2></div><div class="table-wrap"><table><thead><tr><th>Employee</th><th>Days</th><th>Hours</th><th>Gross</th><th>Deductions</th><th>Repayments</th><th>Paycheck</th></tr></thead><tbody id="payrollTable"></tbody></table></div></section>
+        </section>
+
+        <section class="view" id="view-reports">
+          <div class="grid two">
+            <section class="panel"><div class="panel-head"><h2>Hours Ranking</h2></div><div class="panel-body"><div class="rank-list" id="hoursRanking"></div></div></section>
+            <section class="panel"><div class="panel-head"><h2>Job Type Breakdown</h2></div><div class="panel-body"><div class="bars" id="typeChart"></div></div></section>
+          </div>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const storageKey = "tsumaki-readable-dashboard-v1";
+    const currency = new Intl.NumberFormat("en-ZA", { style: "currency", currency: "ZAR" });
+    let state = loadState();
+
+    const $ = (id) => document.getElementById(id);
+    const els = [
+      "monthFilter", "searchFilter", "typeFilter", "employeeFilter", "kEmployees", "kHours", "kGross", "kBalance", "kNet",
+      "topEmployees", "hoursChart", "employeeForm", "employeeName", "employeeRole", "employeeRate", "employeeStatus", "employeeList",
+      "workForm", "workEmployee", "workDate", "workHours", "workRate", "workType", "workSite", "workStatus", "workNote", "workTable",
+      "moneyForm", "moneyEmployee", "moneyDate", "moneyType", "moneyAmount", "moneyReason", "moneyTable", "payrollTable", "hoursRanking", "typeChart",
+      "exportBtn", "backupBtn"
+    ].reduce((map, id) => {
+      map[id] = $(id);
+      return map;
+    }, {});
+
+    els.workDate.valueAsDate = new Date();
+    els.moneyDate.valueAsDate = new Date();
+    els.monthFilter.value = latestMonth();
+
+    document.querySelectorAll(".nav button").forEach((button) => {
+      button.addEventListener("click", () => switchView(button.dataset.view));
+    });
+
+    ["monthFilter", "searchFilter", "typeFilter", "employeeFilter"].forEach((id) => els[id].addEventListener("input", render));
+    els.exportBtn.addEventListener("click", exportCsv);
+    els.backupBtn.addEventListener("click", exportJson);
+    els.workEmployee.addEventListener("change", fillDefaultRate);
+
+    els.employeeForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      state.employees.push({
+        id: crypto.randomUUID(),
+        name: els.employeeName.value.trim(),
+        role: els.employeeRole.value.trim() || "Electrician",
+        rate: Number(els.employeeRate.value || 0),
+        active: els.employeeStatus.value === "active"
+      });
+      els.employeeForm.reset();
+      save();
+    });
+
+    els.workForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      state.work.push({
+        id: crypto.randomUUID(),
+        employeeId: els.workEmployee.value,
+        date: els.workDate.value,
+        hours: Number(els.workHours.value),
+        rate: Number(els.workRate.value),
+        type: els.workType.value,
+        site: els.workSite.value.trim(),
+        status: els.workStatus.value,
+        note: els.workNote.value.trim()
+      });
+      els.workHours.value = "";
+      els.workSite.value = "";
+      els.workNote.value = "";
+      save();
+    });
+
+    els.moneyForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      state.ledger.push({
+        id: crypto.randomUUID(),
+        employeeId: els.moneyEmployee.value,
+        date: els.moneyDate.value,
+        type: els.moneyType.value,
+        amount: Number(els.moneyAmount.value),
+        reason: els.moneyReason.value.trim()
+      });
+      els.moneyAmount.value = "";
+      els.moneyReason.value = "";
+      save();
+    });
+
+    function switchView(viewName) {
+      document.querySelectorAll(".nav button").forEach((button) => button.classList.toggle("active", button.dataset.view === viewName));
+      document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === `view-${viewName}`));
+    }
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey));
+        if (saved && Array.isArray(saved.employees) && Array.isArray(saved.work) && Array.isArray(saved.ledger)) return saved;
+      } catch (error) {
+        console.warn("Could not load saved data", error);
+      }
+      return sampleState();
+    }
+
+    function sampleState() {
+      const employees = [
+        ["Thabo Mokoena", "Senior Electrician", 82],
+        ["Lerato Dlamini", "Electrician", 76],
+        ["Sipho Nkosi", "Lead Installer", 78],
+        ["Naledi Khumalo", "Assistant", 62],
+        ["Amanda Jacobs", "Supervisor", 90],
+        ["Kagiso Molefe", "Assistant", 60],
+        ["Zanele Sithole", "Electrician", 80],
+        ["Michael van Wyk", "Specialist", 96],
+        ["Priya Naidoo", "Electrician", 84],
+        ["Daniel Botha", "Apprentice", 58]
+      ].map(([name, role, rate], index) => ({ id: `emp-${index}`, name, role, rate, active: true }));
+
+      const months = ["2026-01", "2026-02", "2026-03", "2026-04"];
+      const types = ["Install", "Maintenance", "Callout", "Inspection"];
+      const sites = ["Riverside Mall", "Workshop", "Greenview Estate", "North Plant", "Client Callout"];
+      const work = [];
+      const ledger = [];
+
+      employees.forEach((employee, employeeIndex) => {
+        months.forEach((month, monthIndex) => {
+          for (let dayIndex = 1; dayIndex <= 3 + (employeeIndex % 4); dayIndex += 1) {
+            const day = String(3 + dayIndex * 5 + (employeeIndex % 4)).padStart(2, "0");
+            work.push({
+              id: `${employee.id}-${month}-${dayIndex}`,
+              employeeId: employee.id,
+              date: `${month}-${day}`,
+              hours: 6 + ((employeeIndex + dayIndex) % 4),
+              rate: employee.rate + monthIndex * 2,
+              type: types[(employeeIndex + dayIndex + monthIndex) % types.length],
+              site: sites[(employeeIndex + dayIndex) % sites.length],
+              status: dayIndex % 5 === 0 ? "pending" : "approved",
+              note: "Sample shift"
+            });
+          }
+
+          if ((employeeIndex + monthIndex) % 3 === 0) {
+            ledger.push({
+              id: `ded-${employee.id}-${month}`,
+              employeeId: employee.id,
+              date: `${month}-24`,
+              type: "deduction",
+              amount: 140 + employeeIndex * 35 + monthIndex * 25,
+              reason: ["Transport", "Tool advance", "Salary advance", "Borrowed cash"][monthIndex]
+            });
+          }
+
+          if ((employeeIndex + monthIndex) % 5 === 0) {
+            ledger.push({
+              id: `repay-${employee.id}-${month}`,
+              employeeId: employee.id,
+              date: `${month}-28`,
+              type: "repayment",
+              amount: 80 + monthIndex * 20,
+              reason: "Repayment received"
+            });
+          }
+        });
+      });
+
+      const sample = { employees, work, ledger };
+      localStorage.setItem(storageKey, JSON.stringify(sample));
+      return sample;
+    }
+
+    function save() {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      render();
+    }
+
+    function selectedMonth() {
+      return els.monthFilter.value || latestMonth();
+    }
+
+    function latestMonth() {
+      const dates = [...state.work.map((entry) => entry.date), ...state.ledger.map((entry) => entry.date)].sort();
+      return dates.length ? dates[dates.length - 1].slice(0, 7) : new Date().toISOString().slice(0, 7);
+    }
+
+    function employeeName(employeeId) {
+      return (state.employees.find((employee) => employee.id === employeeId) || {}).name || "Deleted employee";
+    }
+
+    function employeeById(employeeId) {
+      return state.employees.find((employee) => employee.id === employeeId);
+    }
+
+    function filteredWork() {
+      const month = selectedMonth();
+      const query = els.searchFilter.value.trim().toLowerCase();
+      const type = els.typeFilter.value;
+      const employeeId = els.employeeFilter.value;
+      return state.work.filter((entry) => {
+        const text = [employeeName(entry.employeeId), entry.site, entry.type, entry.status, entry.note].join(" ").toLowerCase();
+        return entry.date.startsWith(month)
+          && (!query || text.includes(query))
+          && (!type || entry.type === type)
+          && (!employeeId || entry.employeeId === employeeId);
+      });
+    }
+
+    function filteredLedger() {
+      const month = selectedMonth();
+      const query = els.searchFilter.value.trim().toLowerCase();
+      const employeeId = els.employeeFilter.value;
+      return state.ledger.filter((entry) => {
+        const text = [employeeName(entry.employeeId), entry.reason, entry.type].join(" ").toLowerCase();
+        return entry.date.startsWith(month)
+          && (!query || text.includes(query))
+          && (!employeeId || entry.employeeId === employeeId);
+      });
+    }
+
+    function employeeTotals(employeeId, month = selectedMonth()) {
+      const work = state.work.filter((entry) => entry.employeeId === employeeId && entry.date.startsWith(month));
+      const ledger = state.ledger.filter((entry) => entry.employeeId === employeeId && entry.date.startsWith(month));
+      const days = new Set(work.map((entry) => entry.date)).size;
+      const hours = work.reduce((sum, entry) => sum + entry.hours, 0);
+      const gross = work.reduce((sum, entry) => sum + entry.hours * entry.rate, 0);
+      const deductions = ledger.filter((entry) => entry.type === "deduction").reduce((sum, entry) => sum + entry.amount, 0);
+      const repayments = ledger.filter((entry) => entry.type === "repayment").reduce((sum, entry) => sum + entry.amount, 0);
+      return { days, hours, gross, deductions, repayments, net: gross - deductions + repayments };
+    }
+
+    function moneyBalance(employeeId) {
+      const ledger = state.ledger.filter((entry) => entry.employeeId === employeeId);
+      const deductions = ledger.filter((entry) => entry.type === "deduction").reduce((sum, entry) => sum + entry.amount, 0);
+      const repayments = ledger.filter((entry) => entry.type === "repayment").reduce((sum, entry) => sum + entry.amount, 0);
+      return deductions - repayments;
+    }
+
+    function formatNumber(value) {
+      return Number(value).toLocaleString("en-ZA", { maximumFractionDigits: 2 });
+    }
+
+    function fillDefaultRate() {
+      const selected = employeeById(els.workEmployee.value);
+      if (selected && !els.workRate.value) els.workRate.value = selected.rate;
+    }
+
+    function render() {
+      renderSelects();
+      renderOverview();
+      renderEmployees();
+      renderWork();
+      renderMoney();
+      renderPayroll();
+      renderReports();
+    }
+
+    function renderSelects() {
+      const currentWork = els.workEmployee.value;
+      const currentMoney = els.moneyEmployee.value;
+      const currentFilter = els.employeeFilter.value;
+      els.workEmployee.innerHTML = "";
+      els.moneyEmployee.innerHTML = "";
+      els.employeeFilter.innerHTML = `<option value="">All employees</option>`;
+
+      state.employees
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach((employee) => {
+          els.workEmployee.append(new Option(employee.name, employee.id));
+          els.moneyEmployee.append(new Option(employee.name, employee.id));
+          els.employeeFilter.append(new Option(employee.name, employee.id));
+        });
+
+      if (currentWork) els.workEmployee.value = currentWork;
+      if (currentMoney) els.moneyEmployee.value = currentMoney;
+      if (currentFilter) els.employeeFilter.value = currentFilter;
+      fillDefaultRate();
+    }
+
+    function renderOverview() {
+      const work = filteredWork();
+      const ledger = filteredLedger();
+      const hours = work.reduce((sum, entry) => sum + entry.hours, 0);
+      const gross = work.reduce((sum, entry) => sum + entry.hours * entry.rate, 0);
+      const deductions = ledger.filter((entry) => entry.type === "deduction").reduce((sum, entry) => sum + entry.amount, 0);
+      const repayments = ledger.filter((entry) => entry.type === "repayment").reduce((sum, entry) => sum + entry.amount, 0);
+      const net = gross - deductions + repayments;
+
+      els.kEmployees.textContent = state.employees.filter((employee) => employee.active).length;
+      els.kHours.textContent = formatNumber(hours);
+      els.kGross.textContent = currency.format(gross);
+      els.kBalance.textContent = currency.format(deductions - repayments);
+      els.kNet.textContent = currency.format(net);
+
+      renderRanking(els.topEmployees, "hours");
+      renderBars(els.hoursChart, state.employees.map((employee) => ({ name: employee.name, value: employeeTotals(employee.id).hours })));
+    }
+
+    function renderEmployees() {
+      els.employeeList.innerHTML = "";
+      state.employees.forEach((employee) => {
+        const totals = employeeTotals(employee.id);
+        const item = document.createElement("article");
+        item.className = "item";
+        item.innerHTML = `
+          <div class="item-top">
+            <div><div class="title">${employee.name}</div><div class="muted">${employee.role} - ${currency.format(employee.rate)}/hr</div></div>
+            <span class="badge ${employee.active ? "" : "red"}">${employee.active ? "active" : "inactive"}</span>
+          </div>
+          <div class="mini-stats">
+            <span><b>${formatNumber(totals.hours)}</b>hours</span>
+            <span><b>${totals.days}</b>days</span>
+            <span><b>${currency.format(totals.net)}</b>net</span>
+            <span><b>${currency.format(moneyBalance(employee.id))}</b>balance</span>
+          </div>
+          <div class="form-actions" style="margin-top:12px">
+            <button class="button danger small" type="button">Delete</button>
+          </div>
+        `;
+        item.querySelector("button").addEventListener("click", () => deleteEmployee(employee.id));
+        els.employeeList.append(item);
+      });
+    }
+
+    function renderWork() {
+      const rows = filteredWork().slice().sort((a, b) => b.date.localeCompare(a.date));
+      els.workTable.innerHTML = rows.length ? "" : `<tr><td colspan="9"><div class="empty">No work entries found.</div></td></tr>`;
+      rows.forEach((entry) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${entry.date}</td>
+          <td>${employeeName(entry.employeeId)}</td>
+          <td>${entry.site || "No site"}</td>
+          <td>${entry.type}</td>
+          <td class="num">${formatNumber(entry.hours)}</td>
+          <td class="money">${currency.format(entry.rate)}</td>
+          <td class="money">${currency.format(entry.hours * entry.rate)}</td>
+          <td><span class="badge ${entry.status === "pending" ? "warn" : ""}">${entry.status}</span></td>
+          <td><button class="button danger small" type="button">Delete</button></td>
+        `;
+        row.querySelector("button").addEventListener("click", () => {
+          state.work = state.work.filter((item) => item.id !== entry.id);
+          save();
+        });
+        els.workTable.append(row);
+      });
+    }
+
+    function renderMoney() {
+      const rows = filteredLedger().slice().sort((a, b) => b.date.localeCompare(a.date));
+      els.moneyTable.innerHTML = rows.length ? "" : `<tr><td colspan="6"><div class="empty">No money records found.</div></td></tr>`;
+      rows.forEach((entry) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${entry.date}</td>
+          <td>${employeeName(entry.employeeId)}</td>
+          <td><span class="badge ${entry.type === "deduction" ? "warn" : ""}">${entry.type}</span></td>
+          <td class="money">${currency.format(entry.amount)}</td>
+          <td>${entry.reason || "No reason"}</td>
+          <td><button class="button danger small" type="button">Delete</button></td>
+        `;
+        row.querySelector("button").addEventListener("click", () => {
+          state.ledger = state.ledger.filter((item) => item.id !== entry.id);
+          save();
+        });
+        els.moneyTable.append(row);
+      });
+    }
+
+    function renderPayroll() {
+      const rows = state.employees.map((employee) => ({ employee, totals: employeeTotals(employee.id) })).filter((row) => row.totals.days || row.totals.deductions || row.totals.repayments);
+      els.payrollTable.innerHTML = rows.length ? "" : `<tr><td colspan="7"><div class="empty">No payroll activity.</div></td></tr>`;
+      rows.forEach(({ employee, totals }) => {
+        els.payrollTable.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${employee.name}</td>
+            <td>${totals.days}</td>
+            <td class="num">${formatNumber(totals.hours)}</td>
+            <td class="money">${currency.format(totals.gross)}</td>
+            <td class="money">${currency.format(totals.deductions)}</td>
+            <td class="money">${currency.format(totals.repayments)}</td>
+            <td class="money">${currency.format(totals.net)}</td>
+          </tr>
+        `);
+      });
+    }
+
+    function renderReports() {
+      renderRanking(els.hoursRanking, "hours");
+      const byType = {};
+      filteredWork().forEach((entry) => {
+        byType[entry.type] = (byType[entry.type] || 0) + entry.hours;
+      });
+      renderBars(els.typeChart, Object.entries(byType).map(([name, value]) => ({ name, value })));
+    }
+
+    function renderRanking(target, mode) {
+      const rows = state.employees
+        .map((employee) => ({ employee, totals: employeeTotals(employee.id) }))
+        .sort((a, b) => b.totals.hours - a.totals.hours)
+        .slice(0, 8);
+      target.innerHTML = "";
+      rows.forEach((row, index) => {
+        target.insertAdjacentHTML("beforeend", `
+          <div class="rank-row">
+            <div class="rank-no">${index + 1}</div>
+            <div><div class="title">${row.employee.name}</div><div class="muted">${row.totals.days} days, ${currency.format(row.totals.net)} net</div></div>
+            <div class="value">${formatNumber(row.totals.hours)} hrs</div>
+          </div>
+        `);
+      });
+    }
+
+    function renderBars(target, rows) {
+      const cleanRows = rows.filter((row) => row.value > 0).sort((a, b) => b.value - a.value).slice(0, 8);
+      const max = Math.max(1, ...cleanRows.map((row) => row.value));
+      target.innerHTML = cleanRows.length ? "" : `<div class="empty">No chart data.</div>`;
+      cleanRows.forEach((row) => {
+        target.insertAdjacentHTML("beforeend", `
+          <div class="bar-row">
+            <div class="bar-name">${row.name}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${(row.value / max) * 100}%"></div></div>
+            <div class="num">${formatNumber(row.value)} hrs</div>
+          </div>
+        `);
+      });
+    }
+
+    function deleteEmployee(employeeId) {
+      const employee = employeeById(employeeId);
+      if (!employee || !confirm(`Delete ${employee.name} and all their records?`)) return;
+      state.employees = state.employees.filter((item) => item.id !== employeeId);
+      state.work = state.work.filter((item) => item.employeeId !== employeeId);
+      state.ledger = state.ledger.filter((item) => item.employeeId !== employeeId);
+      save();
+    }
+
+    function exportCsv() {
+      const rows = [
+        ["Date", "Employee", "Site", "Type", "Hours", "Rate", "Pay", "Status"],
+        ...filteredWork().map((entry) => [entry.date, employeeName(entry.employeeId), entry.site, entry.type, entry.hours, entry.rate, entry.hours * entry.rate, entry.status])
+      ];
+      download(`tsumaki-work-${selectedMonth()}.csv`, rows.map((row) => row.map(csvCell).join(",")).join("\n"), "text/csv");
+    }
+
+    function exportJson() {
+      download(`tsumaki-backup-${selectedMonth()}.json`, JSON.stringify(state, null, 2), "application/json");
+    }
+
+    function download(filename, content, type) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(new Blob([content], { type }));
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function csvCell(value) {
+      const text = String(value);
+      return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+    }
+
+    render();
+  </script>
+</body>
+</html>
