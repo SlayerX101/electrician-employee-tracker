@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tsumaki Electrical Tracker - Version 1</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f6f5;
+      color: #182522;
+    }
+
+    main {
+      width: min(1100px, calc(100% - 28px));
+      margin: auto;
+      padding: 28px 0 44px;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: end;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 32px;
+    }
+
+    .muted {
+      color: #64736f;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .cards {
+      grid-template-columns: repeat(4, 1fr);
+      margin-bottom: 16px;
+    }
+
+    .card,
+    .panel {
+      background: #fff;
+      border: 1px solid #dae4df;
+      border-radius: 8px;
+      box-shadow: 0 10px 24px rgba(24, 37, 34, 0.08);
+    }
+
+    .card {
+      padding: 16px;
+    }
+
+    .card span {
+      display: block;
+      color: #64736f;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .card strong {
+      font-size: 24px;
+    }
+
+    .panel {
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .panel header {
+      margin: 0;
+      padding: 14px 16px;
+      border-bottom: 1px solid #dae4df;
+      background: #fbfcfb;
+    }
+
+    .body {
+      padding: 16px;
+    }
+
+    form {
+      display: grid;
+      gap: 10px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      align-items: end;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: #64736f;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid #cddbd5;
+      border-radius: 7px;
+      padding: 8px 10px;
+      font: inherit;
+      background: #fff;
+    }
+
+    button {
+      border: 0;
+      border-radius: 7px;
+      background: #0f766e;
+      color: #fff;
+      font-weight: 800;
+      min-height: 40px;
+      padding: 9px 13px;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #e6f4ef;
+      color: #115e59;
+    }
+
+    button.danger {
+      background: #fff1f0;
+      color: #b42318;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #dae4df;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      color: #64736f;
+      font-size: 12px;
+      text-transform: uppercase;
+      background: #fbfcfb;
+    }
+
+    .scroll {
+      max-height: 320px;
+      overflow: auto;
+    }
+
+    .rank-list,
+    .employee-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .item {
+      border: 1px solid #dae4df;
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .title {
+      font-weight: 900;
+    }
+
+    .meta {
+      color: #64736f;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .badge {
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: #e6f4ef;
+      color: #115e59;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 850px) {
+      header,
+      .cards,
+      .form-row {
+        grid-template-columns: 1fr;
+        display: grid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Tsumaki Electrical Tracker</h1>
+        <p class="muted">Version 1: basic employee workrate, payroll, deductions, and rankings.</p>
+      </div>
+      <button id="reset" class="secondary">Reset sample data</button>
+    </header>
+
+    <section class="grid cards">
+      <div class="card"><span>Employees</span><strong id="employeeCount">0</strong></div>
+      <div class="card"><span>Total Hours</span><strong id="totalHours">0</strong></div>
+      <div class="card"><span>Gross Pay</span><strong id="grossPay">R0.00</strong></div>
+      <div class="card"><span>Net Pay</span><strong id="netPay">R0.00</strong></div>
+    </section>
+
+    <section class="panel">
+      <header><h2>Add Employee</h2></header>
+      <div class="body">
+        <form id="employeeForm">
+          <div class="form-row">
+            <label>Name<input id="employeeName" required></label>
+            <label>Role<input id="employeeRole" placeholder="Electrician"></label>
+            <label>Default Rate<input id="employeeRate" type="number" min="0" step="0.01"></label>
+            <button>Add Employee</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header><h2>Log Work</h2></header>
+      <div class="body">
+        <form id="workForm">
+          <div class="form-row">
+            <label>Employee<select id="workEmployee"></select></label>
+            <label>Date<input id="workDate" type="date" required></label>
+            <label>Hours<input id="workHours" type="number" min="0" step="0.25" required></label>
+            <label>Rate<input id="workRate" type="number" min="0" step="0.01" required></label>
+          </div>
+          <div class="form-row">
+            <label>Site<input id="workSite" placeholder="Job site"></label>
+            <label>Note<input id="workNote" placeholder="Optional note"></label>
+            <label>Month<input id="monthFilter" type="month"></label>
+            <button>Add Work Entry</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header><h2>Company Deductions</h2></header>
+      <div class="body">
+        <form id="deductionForm">
+          <div class="form-row">
+            <label>Employee<select id="deductionEmployee"></select></label>
+            <label>Date<input id="deductionDate" type="date" required></label>
+            <label>Amount<input id="deductionAmount" type="number" min="0" step="0.01" required></label>
+            <label>Reason<input id="deductionReason" placeholder="Borrowed cash, tools, transport"></label>
+          </div>
+          <button>Add Deduction</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="grid" style="grid-template-columns: 1.1fr .9fr;">
+      <section class="panel">
+        <header><h2>Work Entries</h2></header>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Employee</th><th>Site</th><th>Hours</th><th>Rate</th><th>Pay</th><th></th></tr>
+            </thead>
+            <tbody id="workTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header><h2>Rankings</h2></header>
+        <div class="body">
+          <div class="rank-list" id="rankings"></div>
+        </div>
+      </section>
+    </section>
+
+    <section class="panel">
+      <header><h2>Monthly Payroll</h2></header>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th>Employee</th><th>Days</th><th>Hours</th><th>Gross</th><th>Deductions</th><th>Paycheck</th><th></th></tr>
+          </thead>
+          <tbody id="payrollTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header><h2>Employees</h2></header>
+      <div class="body"><div id="employeeList" class="employee-list"></div></div>
+    </section>
+  </main>
+
+  <script>
+    const storageKey = 'tsumaki-tracker-v1';
+    const currency = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' });
+    const byId = id => document.getElementById(id);
+
+    let state = loadState();
+
+    const fields = {
+      employeeCount: byId('employeeCount'),
+      totalHours: byId('totalHours'),
+      grossPay: byId('grossPay'),
+      netPay: byId('netPay'),
+      employeeForm: byId('employeeForm'),
+      employeeName: byId('employeeName'),
+      employeeRole: byId('employeeRole'),
+      employeeRate: byId('employeeRate'),
+      workForm: byId('workForm'),
+      workEmployee: byId('workEmployee'),
+      workDate: byId('workDate'),
+      workHours: byId('workHours'),
+      workRate: byId('workRate'),
+      workSite: byId('workSite'),
+      workNote: byId('workNote'),
+      monthFilter: byId('monthFilter'),
+      deductionForm: byId('deductionForm'),
+      deductionEmployee: byId('deductionEmployee'),
+      deductionDate: byId('deductionDate'),
+      deductionAmount: byId('deductionAmount'),
+      deductionReason: byId('deductionReason'),
+      workTable: byId('workTable'),
+      rankings: byId('rankings'),
+      payrollTable: byId('payrollTable'),
+      employeeList: byId('employeeList'),
+      reset: byId('reset')
+    };
+
+    fields.workDate.valueAsDate = new Date();
+    fields.deductionDate.valueAsDate = new Date();
+    fields.monthFilter.value = latestMonth();
+
+    fields.employeeForm.addEventListener('submit', event => {
+      event.preventDefault();
+
+      state.employees.push({
+        id: crypto.randomUUID(),
+        name: fields.employeeName.value.trim(),
+        role: fields.employeeRole.value.trim() || 'Electrician',
+        rate: Number(fields.employeeRate.value) || 0
+      });
+
+      fields.employeeForm.reset();
+      saveState();
+    });
+
+    fields.workEmployee.addEventListener('change', () => {
+      const employee = findEmployee(fields.workEmployee.value);
+      fields.workRate.value = employee ? employee.rate : 0;
+    });
+
+    fields.workForm.addEventListener('submit', event => {
+      event.preventDefault();
+
+      state.work.push({
+        id: crypto.randomUUID(),
+        employeeId: fields.workEmployee.value,
+        date: fields.workDate.value,
+        hours: Number(fields.workHours.value),
+        rate: Number(fields.workRate.value),
+        site: fields.workSite.value.trim(),
+        note: fields.workNote.value.trim()
+      });
+
+      fields.workHours.value = '';
+      fields.workSite.value = '';
+      fields.workNote.value = '';
+      saveState();
+    });
+
+    fields.deductionForm.addEventListener('submit', event => {
+      event.preventDefault();
+
+      state.deductions.push({
+        id: crypto.randomUUID(),
+        employeeId: fields.deductionEmployee.value,
+        date: fields.deductionDate.value,
+        amount: Number(fields.deductionAmount.value),
+        reason: fields.deductionReason.value.trim()
+      });
+
+      fields.deductionAmount.value = '';
+      fields.deductionReason.value = '';
+      saveState();
+    });
+
+    fields.monthFilter.addEventListener('input', render);
+    fields.reset.addEventListener('click', () => {
+      if (confirm('Reset all sample data?')) {
+        state = sampleState();
+        fields.monthFilter.value = latestMonth();
+        saveState();
+      }
+    });
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey));
+        if (saved && saved.employees && saved.work && saved.deductions) {
+          return saved;
+        }
+      } catch {}
+
+      return sampleState();
+    }
+
+    function sampleState() {
+      const employees = [
+        ['Thabo Mokoena', 'Senior Electrician', 72],
+        ['Lerato Dlamini', 'Electrician', 68],
+        ['Sipho Nkosi', 'Lead Installer', 76],
+        ['Naledi Khumalo', 'Assistant', 52],
+        ['Amanda Jacobs', 'Supervisor', 84],
+        ['Kagiso Molefe', 'Electrician', 64],
+        ['Zanele Sithole', 'Electrician', 66],
+        ['Michael van Wyk', 'Inspector', 78],
+        ['Priya Naidoo', 'Planner', 70],
+        ['Daniel Botha', 'Apprentice', 48]
+      ].map((employee, index) => ({
+        id: `employee-${index}`,
+        name: employee[0],
+        role: employee[1],
+        rate: employee[2]
+      }));
+
+      const work = [];
+      const deductions = [];
+      const months = ['2026-01', '2026-02', '2026-03', '2026-04'];
+      const sites = ['Riverside Mall', 'North Plant', 'Greenview Estate', 'Workshop', 'Client Callout'];
+
+      employees.forEach((employee, employeeIndex) => {
+        months.forEach((month, monthIndex) => {
+          for (let day = 1; day <= 3 + (employeeIndex % 4); day += 1) {
+            work.push({
+              id: `${employee.id}-${month}-${day}`,
+              employeeId: employee.id,
+              date: `${month}-${String(2 + day * 5 + (employeeIndex % 3)).padStart(2, '0')}`,
+              hours: 6 + ((employeeIndex + day) % 4),
+              rate: employee.rate + monthIndex * 2,
+              site: sites[(employeeIndex + day) % sites.length],
+              note: 'Standard shift'
+            });
+          }
+
+          if ((employeeIndex + monthIndex) % 3 === 0) {
+            deductions.push({
+              id: `deduction-${employee.id}-${month}`,
+              employeeId: employee.id,
+              date: `${month}-24`,
+              amount: 120 + employeeIndex * 30,
+              reason: 'Company advance'
+            });
+          }
+        });
+      });
+
+      const nextState = { employees, work, deductions };
+      localStorage.setItem(storageKey, JSON.stringify(nextState));
+      return nextState;
+    }
+
+    function saveState() {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      render();
+    }
+
+    function latestMonth() {
+      const dates = state.work.concat(state.deductions).map(entry => entry.date).sort();
+      return dates.length ? dates[dates.length - 1].slice(0, 7) : new Date().toISOString().slice(0, 7);
+    }
+
+    function findEmployee(id) {
+      return state.employees.find(employee => employee.id === id);
+    }
+
+    function employeeName(id) {
+      const employee = findEmployee(id);
+      return employee ? employee.name : 'Deleted employee';
+    }
+
+    function monthWork() {
+      return state.work.filter(entry => entry.date.startsWith(fields.monthFilter.value));
+    }
+
+    function monthDeductions() {
+      return state.deductions.filter(entry => entry.date.startsWith(fields.monthFilter.value));
+    }
+
+    function totalsForEmployee(id) {
+      const work = monthWork().filter(entry => entry.employeeId === id);
+      const deductions = monthDeductions().filter(entry => entry.employeeId === id);
+      const days = new Set(work.map(entry => entry.date)).size;
+      const hours = work.reduce((sum, entry) => sum + entry.hours, 0);
+      const gross = work.reduce((sum, entry) => sum + entry.hours * entry.rate, 0);
+      const deductionTotal = deductions.reduce((sum, entry) => sum + entry.amount, 0);
+
+      return {
+        days,
+        hours,
+        gross,
+        deductions: deductionTotal,
+        net: gross - deductionTotal
+      };
+    }
+
+    function render() {
+      renderSelects();
+      renderCards();
+      renderWorkTable();
+      renderRankings();
+      renderPayroll();
+      renderEmployees();
+    }
+
+    function renderSelects() {
+      const selectedWorkEmployee = fields.workEmployee.value;
+      const selectedDeductionEmployee = fields.deductionEmployee.value;
+
+      fields.workEmployee.innerHTML = '';
+      fields.deductionEmployee.innerHTML = '';
+
+      state.employees.forEach(employee => {
+        fields.workEmployee.append(new Option(employee.name, employee.id));
+        fields.deductionEmployee.append(new Option(employee.name, employee.id));
+      });
+
+      if (selectedWorkEmployee) fields.workEmployee.value = selectedWorkEmployee;
+      if (selectedDeductionEmployee) fields.deductionEmployee.value = selectedDeductionEmployee;
+
+      const employee = findEmployee(fields.workEmployee.value);
+      if (employee && !fields.workRate.value) fields.workRate.value = employee.rate;
+    }
+
+    function renderCards() {
+      const work = monthWork();
+      const deductions = monthDeductions();
+      const hours = work.reduce((sum, entry) => sum + entry.hours, 0);
+      const gross = work.reduce((sum, entry) => sum + entry.hours * entry.rate, 0);
+      const deductionTotal = deductions.reduce((sum, entry) => sum + entry.amount, 0);
+
+      fields.employeeCount.textContent = state.employees.length;
+      fields.totalHours.textContent = hours.toLocaleString('en-ZA', { maximumFractionDigits: 2 });
+      fields.grossPay.textContent = currency.format(gross);
+      fields.netPay.textContent = currency.format(gross - deductionTotal);
+    }
+
+    function renderWorkTable() {
+      fields.workTable.innerHTML = '';
+
+      monthWork().sort((a, b) => b.date.localeCompare(a.date)).forEach(entry => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${entry.date}</td>
+          <td>${employeeName(entry.employeeId)}</td>
+          <td>${entry.site || ''}</td>
+          <td>${entry.hours}</td>
+          <td>${currency.format(entry.rate)}</td>
+          <td>${currency.format(entry.hours * entry.rate)}</td>
+          <td><button class="danger" data-id="${entry.id}">Delete</button></td>
+        `;
+
+        row.querySelector('button').addEventListener('click', () => {
+          state.work = state.work.filter(item => item.id !== entry.id);
+          saveState();
+        });
+
+        fields.workTable.append(row);
+      });
+    }
+
+    function renderRankings() {
+      fields.rankings.innerHTML = '';
+
+      state.employees
+        .map(employee => ({ employee, totals: totalsForEmployee(employee.id) }))
+        .filter(row => row.totals.days > 0)
+        .sort((a, b) => b.totals.hours - a.totals.hours)
+        .forEach((row, index) => {
+          fields.rankings.insertAdjacentHTML('beforeend', `
+            <div class="item">
+              <div class="item-top">
+                <div>
+                  <div class="title">#${index + 1} ${row.employee.name}</div>
+                  <div class="meta">${row.totals.days} days worked</div>
+                </div>
+                <span class="badge">${row.totals.hours} hours</span>
+              </div>
+            </div>
+          `);
+        });
+    }
+
+    function renderPayroll() {
+      fields.payrollTable.innerHTML = '';
+
+      state.employees.forEach(employee => {
+        const totals = totalsForEmployee(employee.id);
+        if (!totals.days && !totals.deductions) return;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${employee.name}</td>
+          <td>${totals.days}</td>
+          <td>${totals.hours}</td>
+          <td>${currency.format(totals.gross)}</td>
+          <td>${currency.format(totals.deductions)}</td>
+          <td>${currency.format(totals.net)}</td>
+          <td><span class="badge">Ready</span></td>
+        `;
+        fields.payrollTable.append(row);
+      });
+    }
+
+    function renderEmployees() {
+      fields.employeeList.innerHTML = '';
+
+      state.employees.forEach(employee => {
+        const totals = totalsForEmployee(employee.id);
+        const item = document.createElement('div');
+        item.className = 'item';
+        item.innerHTML = `
+          <div class="item-top">
+            <div>
+              <div class="title">${employee.name}</div>
+              <div class="meta">${employee.role} - ${currency.format(employee.rate)} / hour</div>
+            </div>
+            <button class="danger">Delete</button>
+          </div>
+          <div class="meta">${totals.days} days, ${totals.hours} hours, ${currency.format(totals.net)} paycheck this month</div>
+        `;
+
+        item.querySelector('button').addEventListener('click', () => {
+          if (!confirm(`Delete ${employee.name} and all records?`)) return;
+          state.employees = state.employees.filter(item => item.id !== employee.id);
+          state.work = state.work.filter(item => item.employeeId !== employee.id);
+          state.deductions = state.deductions.filter(item => item.employeeId !== employee.id);
+          saveState();
+        });
+
+        fields.employeeList.append(item);
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>
